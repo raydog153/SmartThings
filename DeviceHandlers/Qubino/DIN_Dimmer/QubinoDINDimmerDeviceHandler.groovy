@@ -1,8 +1,8 @@
 /**
- *  Qubino Flush Dimmer
+ *  Qubino DIN Dimmer
  *	Device Handler 
  *	Version 1.0
- *  Date: 22.2.2017
+ *  Date: 4.9.2017
  *	Author: Kristjan Jam&scaron;ek (Kjamsek), Goap d.o.o.
  *  Copyright 2017 Kristjan Jam&scaron;ek
  *
@@ -16,8 +16,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *
- * |---------------------------- DEVICE HANDLER FOR QUBINO FLUSH DIMMER Z-WAVE DEVICE -------------------------------------------------------|  
- *	The handler supports all unsecure functions of the Qubino Flush Dimmer device, except configurable inputs. Configuration parameters and
+ * |---------------------------- DEVICE HANDLER FOR QUBINO DIN DIMMER Z-WAVE DEVICE -------------------------------------------------------|  
+ *	The handler supports all unsecure functions of the Qubino DIN Dimmer device, except configurable inputs. Configuration parameters and
  *	association groups can be set in the device's preferences screen, but they are applied on the device only after
  *	pressing the 'Set configuration' and 'Set associations' buttons on the bottom of the details view. 
  *
@@ -35,7 +35,7 @@
  *	1.00: Added comments to code for readability
  */
 metadata {
-	definition (name: "Qubino Flush Dimmer", namespace: "Goap", author: "Kristjan Jam&scaron;ek") {
+	definition (name: "Qubino DIN Dimmer", namespace: "Goap", author: "Kristjan Jam&scaron;ek") {
 		capability "Actuator"
 		capability "Switch"
 		capability "Switch Level"
@@ -43,6 +43,7 @@ metadata {
 		
 		capability "Relay Switch"	// - Tagging capability
 		capability "Light"			// - Tagging capability
+		capability "Sensor"			// - Tagging capability for configurable inputs
 		
 		capability "Configuration" //Needed for configure() function to set any specific configurations
 		capability "Temperature Measurement" //This capability is valid for devices with temperature sensors connected
@@ -54,18 +55,17 @@ metadata {
 		command "refreshPowerConsumption" //command to issue Meter Get requests for KWH measurements from the device, W are already shown as part of Pwer MEter capability
 		command "resetPower" //command to issue Meter Reset commands to reset accumulated pwoer measurements
 		
-        fingerprint mfr:"0159", prod:"0001", model:"0051"  //Manufacturer Information value for Qubino Flush Dimmer
+        fingerprint mfr:"0159", prod:"0001", model:"0052"  //Manufacturer Information value for Qubino DIN Dimmer
 	}
 
 
 	simulator {
 		// TESTED WITH PHYSICAL DEVICE - UNNEEDED
 	}
-
 	tiles(scale: 2) {
 		multiAttributeTile(name:"switch", type: "lighting", width: 6, height: 4, canChangeIcon: true){
 			tileAttribute ("device.switch", key: "PRIMARY_CONTROL") {
-				attributeState "on", label:'${name}', action:"switch.off", icon:"st.switches.light.on", backgroundColor:"#79b821", nextState:"turningOff"
+				attributeState "on", label:'${name}', action:"switch.off", icon:"st.switches.light.on", backgroundColor:"#00a0dc", nextState:"turningOff"
 				attributeState "off", label:'${name}', action:"switch.on", icon:"st.switches.light.off", backgroundColor:"#ffffff", nextState:"turningOn"
 				attributeState "turningOn", label:'${name}', action:"switch.off", icon:"st.switches.light.on", backgroundColor:"#79b821", nextState:"turningOff"
 				attributeState "turningOff", label:'${name}', action:"switch.on", icon:"st.switches.light.off", backgroundColor:"#ffffff", nextState:"turningOn"
@@ -77,18 +77,7 @@ metadata {
 				attributeState "power", label:'Power level: ${currentValue} W', icon: "st.Appliances.appliances17"
 			}
 	    }
-		standardTile("power", "device.power", decoration: "flat", width: 3, height: 3) {
-			state("power", label:'${currentValue} W', icon: 'st.Appliances.appliances17')
-		}
-		standardTile("kwhConsumption", "device.kwhConsumption", decoration: "flat", width: 3, height: 3) {
-			state("kwhConsumption", label:'${currentValue} kWh', icon: 'st.Appliances.appliances17')
-		}
-		standardTile("resetPower", "device.resetPower", decoration: "flat", width: 3, height: 3) {
-			state("resetPower", label:'Reset Power', action:'resetPower')
-		}
-		standardTile("refreshPowerConsumption", "device.refreshPowerConsumption", decoration: "flat", width: 3, height: 3) {
-			state("refreshPowerConsumption", label:'Refresh power', action:'refreshPowerConsumption')
-		}
+		
 		standardTile("temperature", "device.temperature", width: 6, height: 3) {
 			state("temperature", label:'${currentValue} ${unit}', unit:'°', icon: 'st.Weather.weather2', backgroundColors: [
 				// Celsius Color Range
@@ -109,6 +98,18 @@ metadata {
 				[value: 96, color: "#bc2323"]
 			])
 		}
+		standardTile("power", "device.power", decoration: "flat", width: 3, height: 3) {
+			state("power", label:'${currentValue} W', icon: 'st.Appliances.appliances17')
+		}
+		standardTile("kwhConsumption", "device.kwhConsumption", decoration: "flat", width: 3, height: 3) {
+			state("kwhConsumption", label:'${currentValue} kWh', icon: 'st.Appliances.appliances17')
+		}
+		standardTile("resetPower", "device.resetPower", decoration: "flat", width: 3, height: 3) {
+			state("resetPower", label:'Reset Power', action:'resetPower')
+		}
+		standardTile("refreshPowerConsumption", "device.refreshPowerConsumption", decoration: "flat", width: 3, height: 3) {
+			state("refreshPowerConsumption", label:'Refresh power', action:'refreshPowerConsumption')
+		}
 		
 		standardTile("setConfiguration", "device.setConfiguration", decoration: "flat", width: 3, height: 3) {
 			state("setConfiguration", label:'Set Configuration', action:'setConfiguration')
@@ -116,52 +117,38 @@ metadata {
 		standardTile("setAssociation", "device.setAssociation", decoration: "flat", width: 3, height: 3) {
 			state("setAssociation", label:'Set Associations', action:'setAssociation')
 		}
-
+		
 		main("switch")
 		details(["switch", "temperature", "power", "kwhConsumption", "resetPower", "refreshPowerConsumption", "setConfiguration", "setAssociation"])
+		
 	}
+	
 	preferences {
 /**
 *			--------	CONFIGURATION PARAMETER SECTION	--------
 */
+				input (
+					type: "paragraph",
+					element: "paragraph",
+					title: "CONFIGURATION PARAMETERS:",
+					description: "Configuration parameter settings."
+				)
 				input name: "param1", type: "enum", required: false,
 					options: ["0" : "0 - mono-stable switch type (push button)",
 							  "1" : "1 - Bi-stable switch type"],
 					title: "1. Input 1 switch type.\n " +
-						   "By this parameter the user can set input based on device type (switch, potentiometer, 0-10V sensor,..).\n" +
 						   "Available settings:\n" +
 						   "0 - button quick press turns between previous set Dimmer value and zero.\n" +
 						   "1 - Bi-stable switch type.\n" +
-						   "Default value: 0.\n" +
-						   "NOTE: Switch connected to S1 terminal is a master switch. It activates the basic functionality of the Dimmer."
-				
-				input name: "param2", type: "enum", required: false,
-					options: ["0" : "0 - mono-stable switch type (push button)",
-							  "1" : "1 - Bi-stable switch type"],
-					title: "2. Input 2 switch type.\n " +
-						   "By this parameter the user can set input based on device type (switch, potentiometer, 0-10V sensor,..).\n" +
-						   "Available settings:\n" +
-						   "0 - mono-stable switch type (push button) – button quick press  turns between previous set Dimmer value and zero.\n" +
-						   "1 - Bi-stable switch type.\n" +
-						   "Default value: 0.\n" +
-						   "NOTE: to enable this function, Parameter 20 or Parameter 100 has to be set."
-				
-				input name: "param3", type: "enum", required: false,
-					options: ["0" : "0 - NO (normally open) input type",
-							  "1" : "1 - NC (normally close) input type"],
-					title: "3. Input 2 contact type.\n " +
-						   "Available settings:\n" +
-						   "0 - NO (normally open) input type.\n" +
-						   "1 - NC (normally close) input type.\n" +
 						   "Default value: 0."
 				
-				input name: "param4", type: "enum", required: false,
-					options: ["0" : "0 - NO (normally open) input type",
-							  "1" : "1 - NC (normally close) input type"],
-					title: "4. Input 3 contact type.\n " +
+				input name: "param5", type: "enum", required: false,
+					options: ["0" : "0 - Dimmer mode",
+							  "1" : "1 - Switch mode"],
+					title: "5.With this parameter is possible to change the module the way the module functions.\n " +
 						   "Available settings:\n" +
-						   "0 - NO (normally open) input type.\n" +
-						   "1 - NC (normally close) input type.\n" +
+						   "0 - Dimmer mode.\n" +
+						   "1 - Switch mode.\n" +
 						   "Default value: 0."
 						   
 				input name: "param10", type: "enum", required: false,
@@ -176,34 +163,22 @@ metadata {
 							"1 - ALL ON is not active, ALL OFF active.\n" +
 							"2 - ALL ON active, ALL OFF is not active.\n" +
 							"Default value: 255.\n" +
-							"Flush Dimmer 0-10V module responds to commands ALL ON / ALL OFF that may be sent by the main controller or by other controller belonging to the system."
+							"DIN Dimmer module responds to commands ALL ON / ALL OFF that may be sent by the main controller or by other controller belonging to the system."
 				
 				input name: "param11", type: "number", range: "0..32536", required: false,
 					title: "11. Automatic turning off output after set time.\n " +
 						   "Available settings:\n" +
 							"0 - Auto OFF disabled.\n" +
-							"1 - 32536 = 1 second - 32536 seconds Auto OFF enabled with define time, step is 1 second.\n" +
+							"1 - 32536 = 1 second - 32536 seconds Auto OFF enabled with defined time, step is 1 second.\n" +
 							"Default value: 0."
 							
 				input name: "param12", type: "number", range: "0..32536", required: false,
 					title: "12. Automatic turning on output after set time.\n" +
 						   "Available settings:\n" +
 							"0 - Auto ON disabled.\n" +
-							"1 - 32536 = 1second - 32536 seconds Auto ON enabled with define time, step is 1 second.\n" +
+							"1 - 32536 = 1 second - 32536 seconds Auto ON enabled with define time, step is 1 second.\n" +
 							"Default value: 0."
 
-				input name: "param20", type: "enum", required: false,
-					options: ["0" : "0 - single push button (connected to I1)",
-							  "1" : "1 - 3 way switch (connected to I1 and I2)",
-							  "2" : "2 - Additional switch (connected to I2)"],
-					title: "20. Enable / Disable 3 way switch / additional switch.\n " +
-						   "Dimming is done by push button or switch connected to I1 (by default). Enabling 3way switch, dimming can be controlled by push button or switch connected to I1 and I2.\n" +
-						   "Available settings:\n" +
-						   "0 - single push button (connected to I1).\n" +
-						   "1 - 3 way switch (connected to I1 and I2).\n" +
-						   "2 - Additional switch (connected to I2).\n" +
-						   "Default value: 0."
-				
 				input name: "param21", type: "enum", required: false,
 					options: ["0" : "0 - Double click disabled",
 							  "1" : "1 - Double click enabled"],
@@ -215,12 +190,12 @@ metadata {
 							"Default value: 0."
 							
 				input name: "param30", type: "enum", required: false,
-					options: ["0" : "0 - Flush Dimmer 0-10V module saves its state before power failure (it returns to the last position saved before a power failure)",
-							  "1" : "1 - Flush Dimmer 0-10V module does not save the state after a power failure, it returns to 'off' position"],
+					options: ["0" : "0 - DIN Dimmer module saves its state before power failure (it returns to the last position saved before a power failure)",
+							  "1" : "1 - DIN Dimmer module does not save the state after a power failure, it returns to 'off' position"],
 					title: "30. Saving the state of the device after a power failure.\n" +
 						   "Available settings:\n" +
-							"0 - Flush Dimmer 0-10V module saves its state before power failure (it returns to the last position saved before a power failure).\n" +
-							"1 - Flush Dimmer 0-10V module does not save the state after a power failure, it returns to 'off' position.\n" +
+							"0 - DIN Dimmer module saves its state before power failure (it returns to the last position saved before a power failure).\n" +
+							"1 - DIN Dimmer module does not save the state after a power failure, it returns to 'off' position.\n" +
 							"Default value: 0."
 				
 				input name: "param40", type: "number", range: "0..100", required: false,
@@ -229,7 +204,7 @@ metadata {
 						   "Available settings:\n" +
 							"0 - reporting disabled.\n" +
 							"1 - 100 = 1% - 100% Reporting enabled. Power report is send (push) only when actual power in Watts in real time changes for more than set percentage comparing to previous actual power in Watts, step is 1%.\n" +
-							"Default value: 5." +
+							"Default value: 5.\n" +
 							"NOTE: if power changed is less than 1W, the report is not send (pushed), independent of percentage set."
 							
 				input name: "param42", type: "number", range: "0..32767", required: false,
@@ -288,52 +263,6 @@ metadata {
 							"0 – 127 (from 1 to 127 seconds).\n" +
 							"Default value: 0 (dimming duration according to parameter 66)."
 
-				input name: "param100", type: "enum", required: false,
-					options: ["0" : "0 - Endpoint, I2 disabled",
-							  "1" : "1 - Home Security; Motion Detection, unknown location",
-							  "2" : "2 - CO; Carbon Monoxide detected, unknown  location",
-							  "3" : "3 - CO2; Carbon Dioxide detected, unknown location",
-							  "4" : "4 - Water Alarm; Water Leak detected, unknown location",
-							  "5" : "5 - Heat Alarm; Overheat detected, unknown location",
-							  "6" : "6 - Smoke Alarm; Smoke detected, unknown location",
-							  "9" : "9 - Sensor binary"],
-					title: "100. Enable / Disable Endpoints I2 or select Notification Type and Event.\n" +
-						   "Enabling I2 means that Endpoint (I2) will be present on UI. Disabling it will result in hiding the endpoint according to the parameter set value. Additionally, a Notification Type and Event can be selected for the endpoint.\n" +
-						   "Available settings:\n" +
-							"0 - Endpoint, I2 disabled\n" +
-							"1 - Home Security; Motion Detection, unknown location\n" +
-							"2 - CO; Carbon Monoxide detected, unknown  location\n" +
-							"3 - CO2; Carbon Dioxide detected, unknown location\n" +
-							"4 - Water Alarm; Water Leak detected, unknown location\n" +
-							"5 - Heat Alarm; Overheat detected, unknown location\n" +
-							"6 - Smoke Alarm; Smoke detected, unknown location\n" +
-							"9 - Sensor binary\n" +
-							"Default value: 0.\n" +
-							"NOTE1: After parameter change, first exclude module (without setting parameters to default value) then wait at least 30s and then re include the module! When the parameter is set to value 9 the notifications are send for Home Security."
-							
-				input name: "param101", type: "enum", required: false,
-					options: ["0" : "0 - Endpoint, I3 disabled",
-							  "1" : "1 - Home Security; Motion Detection, unknown location",
-							  "2" : "2 - CO; Carbon Monoxide detected, unknown  location",
-							  "3" : "3 - CO2; Carbon Dioxide detected, unknown location",
-							  "4" : "4 - Water Alarm; Water Leak detected, unknown location",
-							  "5" : "5 - Heat Alarm; Overheat detected, unknown location",
-							  "6" : "6 - Smoke Alarm; Smoke detected, unknown location",
-							  "9" : "9 - Sensor binary"],
-					title: "101. Enable / Disable Endpoints I3 or select Notification Type and Event.\n" +
-						   "Enabling I3 means that Endpoint (I3) will be present on UI. Disabling it will result in hiding the endpoint according to the parameter set value. Additionally, a Notification Type and Event can be selected for the endpoint.\n" +
-						   "Available settings:\n" +
-							"0 - Endpoint, I3 disabled\n" +
-							"1 - Home Security; Motion Detection, unknown location\n" +
-							"2 - CO; Carbon Monoxide detected, unknown  location\n" +
-							"3 - CO2; Carbon Dioxide detected, unknown location\n" +
-							"4 - Water Alarm; Water Leak detected, unknown location\n" +
-							"5 - Heat Alarm; Overheat detected, unknown location\n" +
-							"6 - Smoke Alarm; Smoke detected, unknown location\n" +
-							"9 - Sensor binary\n" +
-							"Default value: 0.\n" +
-							"NOTE1: After parameter change, first exclude module (without setting parameters to default value) then wait at least 30s and then re include the module! When the parameter is set to value 9 the notifications are send for Home Security."
-							
 				input name: "param110", type: "number", range: "1..32536", required: false,
 					title: "110. Temperature sensor offset settings.\n" +
 						   "Set value is added or subtracted to actual measured value by sensor..\n" +
@@ -350,19 +279,16 @@ metadata {
 							"0 - Reporting disabled.\n" +
 							"1 - 127 = 0,1°C - 12,7°C, step is 0,1°C.\n" +
 							"Default value: 5 = 0,5°C change."
-
-				input name: "param249", type: "enum", required: false,
-					options: ["0" : "0 – Disable reporting.",
-							  "1" : "1 – Enable reporting."],
-					title: "67. Enable/Disable Reporting on Set command.\n" +
-						   "Available settings:\n" +
-							"0 – Disable reporting.\n" +
-							"1 – Enable reporting.\n" +
-							"Default value: 1."
 			
 /**
 *			--------	ASSOCIATION GROUP SECTION	--------
 */
+				input (
+					type: "paragraph",
+					element: "paragraph",
+					title: "ASSOCIATION GROUPS:",
+					description: "Association group settings."
+				)
 				input name: "assocGroup2", type: "text", required: false,
 					title: "Association group 2: \n" +
 						   "Basic on/off (triggered at change of the input I1 and reflecting state of the output Q) up to 16 nodes.\n" +
@@ -375,43 +301,14 @@ metadata {
 						   
 				input name: "assocGroup4", type: "text", required: false,
 					title: "Association group 4: \n" +
-						   "Multilevel set (triggered at changes of state/value of the Flush Dimmer) up to 16 nodes." +
+						   "Multilevel set (triggered at changes of state/value of the DIN Dimmer) up to 16 nodes." +
 						   "NOTE: Insert the node Id value of the devices you wish to associate this group with. Multiple nodeIds can also be set at once by separating individual values by a comma (2,3,...)."
 						   
 				input name: "assocGroup5", type: "text", required: false,
 					title: "Association group 5: \n" +
-						   "Basic on/off (triggered at change of the input I2 state and reflecting its state) up to 16 nodes.\n" +
+						   "Multilevel Sensor Report (triggered at the change od temperature sensor values) up to 16 nodes.\n" +
 						   "NOTE: Insert the node Id value of the devices you wish to associate this group with. Multiple nodeIds can also be set at once by separating individual values by a comma (2,3,...)."
 						   
-				input name: "assocGroup6", type: "text", required: false,
-					title: "Association group 6: \n" +
-						   "Notification report (triggered at change of the input I2 state and reflecting its state) up to 16 nodes.\n" +
-						   "NOTE: Insert the node Id value of the devices you wish to associate this group with. Multiple nodeIds can also be set at once by separating individual values by a comma (2,3,...)."
-						   
-				input name: "assocGroup7", type: "text", required: false,
-					title: "Association group 7: \n" +
-						   "Binary sensor (triggered at change of the input I2 state and reflecting its state) up to 16 nodes.\n" +
-						   "NOTE: Insert the node Id value of the devices you wish to associate this group with. Multiple nodeIds can also be set at once by separating individual values by a comma (2,3,...)."
-						   
-				input name: "assocGroup8", type: "text", required: false,
-					title: "Association group 8: \n" +
-						   "Basic on/off (triggered at change of the input I3 state and reflecting its state) up to 16 nodes.\n" +
-						   "NOTE: Insert the node Id value of the devices you wish to associate this group with. Multiple nodeIds can also be set at once by separating individual values by a comma (2,3,...)."
-						   
-				input name: "assocGroup9", type: "text", required: false,
-					title: "Association group 9: \n" +
-						   "Notification report (triggered at change of the input I3 state and reflecting its state) up to 16 nodes.\n" +
-						   "NOTE: Insert the node Id value of the devices you wish to associate this group with. Multiple nodeIds can also be set at once by separating individual values by a comma (2,3,...)."
-						   
-				input name: "assocGroup10", type: "text", required: false,
-					title: "Association group 10: \n" +
-						   "Binary sensor report (triggered at change of the input I3 state and reflecting its state) up to 16 nodes.\n" +
-						   "NOTE: Insert the node Id value of the devices you wish to associate this group with. Multiple nodeIds can also be set at once by separating individual values by a comma (2,3,...)."
-						   
-				input name: "assocGroup11", type: "text", required: false,
-					title: "Association group 11: \n" +
-						   "Multilevel sensor report (triggered at change of temperature sensor) up to 16 nodes.\n" +
-						   "NOTE: Insert the node Id value of the devices you wish to associate this group with. Multiple nodeIds can also be set at once by separating individual values by a comma (2,3,...)."
 	}
 }
 /**
@@ -469,12 +366,15 @@ def convertDegrees(scaleParam, encapCmd){
  * @return List of commands that will be executed in sequence with 500 ms delay inbetween.
 */
 def configure() {
-	log.debug "Qubino Flush Dimmer: configure()"
-	def assocCmds = []
-	assocCmds << zwave.associationV1.associationRemove(groupingIdentifier:1).format()
-	assocCmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
-	return delayBetween(assocCmds, 500)
+	log.debug "Qubino DIN Dimmer: configure()"
+	def cmds = []
+	cmds << zwave.associationV1.associationRemove(groupingIdentifier:1).format()
+	cmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
+	cmds << zwave.multiChannelV3.multiChannelEndPointGet().format()
+	return response(delayBetween(cmds, 1000))
+	
 }
+
 /**
  * Switch capability command handler for ON state. It issues a Switch Multilevel Set command with value 0xFF and instantaneous dimming duration.
  * This command is followed by a Switch Multilevel Get command, that updates the actual state of the dimmer.
@@ -523,7 +423,7 @@ def setLevel(level) {
  * @return void.
 */
 def refreshPowerConsumption() {
-	log.debug "Qubino Flush Dimmer: refreshPowerConsumption()"
+	log.debug "Qubino DIN Dimmer: refreshPowerConsumption()"
 	delayBetween([
 		zwave.meterV2.meterGet(scale: 0).format(),
 		zwave.meterV2.meterGet(scale: 2).format()
@@ -536,7 +436,7 @@ def refreshPowerConsumption() {
  * @return void.
 */
 def resetPower() {
-	log.debug "Qubino Flush Dimmer: resetPower()"
+	log.debug "Qubino DIN Dimmer: resetPower()"
 	zwave.meterV2.meterReset()
 	delayBetween([
 		zwave.meterV2.meterReset(),
@@ -554,7 +454,7 @@ def resetPower() {
 */
 
 def setAssociation() {
-	log.debug "Qubino Flush Dimmer: setAssociation()"
+	log.debug "Qubino DIN Dimmer: setAssociation()"
 	def assocSet = []
 	if(settings.assocGroup2 != null){
 		def group2parsed = settings.assocGroup2.tokenize(",")
@@ -600,72 +500,6 @@ def setAssociation() {
 	}else{
 		assocSet << zwave.associationV2.associationRemove(groupingIdentifier:5).format()
 	}
-	if(settings.assocGroup6 != null){
-		def group6parsed = settings.assocGroup6.tokenize(",")
-		if(group6parsed == null){
-			assocSet << zwave.associationV1.associationSet(groupingIdentifier:6, nodeId:assocGroup6).format()
-		}else{
-			group6parsed = convertStringListToIntegerList(group6parsed)
-			assocSet << zwave.associationV1.associationSet(groupingIdentifier:6, nodeId:group6parsed).format()
-		}
-	}else{
-		assocSet << zwave.associationV2.associationRemove(groupingIdentifier:6).format()
-	}
-	if(settings.assocGroup7 != null){
-		def group7parsed = settings.assocGroup7.tokenize(",")
-		if(group7parsed == null){
-			assocSet << zwave.associationV1.associationSet(groupingIdentifier:7, nodeId:assocGroup7).format()
-		}else{
-			group7parsed = convertStringListToIntegerList(group7parsed)
-			assocSet << zwave.associationV1.associationSet(groupingIdentifier:7, nodeId:group7parsed).format()
-		}
-	}else{
-		assocSet << zwave.associationV2.associationRemove(groupingIdentifier:7).format()
-	}
-	if(settings.assocGroup8 != null){
-		def group8parsed = settings.assocGroup8.tokenize(",")
-		if(group8parsed == null){
-			assocSet << zwave.associationV1.associationSet(groupingIdentifier:8, nodeId:assocGroup8).format()
-		}else{
-			group8parsed = convertStringListToIntegerList(group8parsed)
-			assocSet << zwave.associationV1.associationSet(groupingIdentifier:8, nodeId:group8parsed).format()
-		}
-	}else{
-		assocSet << zwave.associationV2.associationRemove(groupingIdentifier:8).format()
-	}
-	if(settings.assocGroup9 != null){
-		def group9parsed = settings.assocGroup9.tokenize(",")
-		if(group9parsed == null){
-			assocSet << zwave.associationV1.associationSet(groupingIdentifier:9, nodeId:assocGroup9).format()
-		}else{
-			group9parsed = convertStringListToIntegerList(group9parsed)
-			assocSet << zwave.associationV1.associationSet(groupingIdentifier:9, nodeId:group9parsed).format()
-		}
-	}else{
-		assocSet << zwave.associationV2.associationRemove(groupingIdentifier:9).format()
-	}
-	if(settings.assocGroup10 != null){
-		def group10parsed = settings.assocGroup10.tokenize(",")
-		if(group10parsed == null){
-			assocSet << zwave.associationV1.associationSet(groupingIdentifier:10, nodeId:assocGroup10).format()
-		}else{
-			group10parsed = convertStringListToIntegerList(group10parsed)
-			assocSet << zwave.associationV1.associationSet(groupingIdentifier:10, nodeId:group10parsed).format()
-		}
-	}else{
-		assocSet << zwave.associationV2.associationRemove(groupingIdentifier:10).format()
-	}
-	if(settings.assocGroup11 != null){
-		def group11parsed = settings.assocGroup11.tokenize(",")
-		if(group11parsed == null){
-			assocSet << zwave.associationV1.associationSet(groupingIdentifier:11, nodeId:assocGroup11).format()
-		}else{
-			group11parsed = convertStringListToIntegerList(group11parsed)
-			assocSet << zwave.associationV1.associationSet(groupingIdentifier:11, nodeId:group11parsed).format()
-		}
-	}else{
-		assocSet << zwave.associationV2.associationRemove(groupingIdentifier:11).format()
-	}
 	if(assocSet.size() > 0){
 		return delayBetween(assocSet, 500)
 	}
@@ -681,19 +515,13 @@ def setAssociation() {
 */
 
 def setConfiguration() {
-	log.debug "Qubino Flush Dimmer: setConfiguration()"
+	log.debug "Qubino DIN Dimmer: setConfiguration()"
 	def configSequence = []
 	if(settings.param1 != null){
 		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 1, size: 1, scaledConfigurationValue: settings.param1.toInteger()).format()
 	}
-	if(settings.param2 != null){
-		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 2, size: 1, scaledConfigurationValue: settings.param2.toInteger()).format()
-	}
-	if(settings.param3 != null){
-		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 3, size: 1, scaledConfigurationValue: settings.param3.toInteger()).format()
-	}
-	if(settings.param4 != null){
-		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 4, size: 1, scaledConfigurationValue: settings.param4.toInteger()).format()
+	if(settings.param5 != null){
+		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 5, size: 1, scaledConfigurationValue: settings.param5.toInteger()).format()
 	}
 	if(settings.param10 != null){
 		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 10, size: 2, scaledConfigurationValue: settings.param10.toInteger()).format()
@@ -703,9 +531,6 @@ def setConfiguration() {
 	}
 	if(settings.param12 != null){
 		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 12, size: 2, scaledConfigurationValue: settings.param12.toInteger()).format()
-	}
-	if(settings.param20 != null){
-		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 20, size: 1, scaledConfigurationValue: settings.param20.toInteger()).format()
 	}
 	if(settings.param21 != null){
 		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 21, size: 1, scaledConfigurationValue: settings.param21.toInteger()).format()
@@ -736,13 +561,7 @@ def setConfiguration() {
 	}
 	if(settings.param68 != null){
 		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 68, size: 1, scaledConfigurationValue: settings.param68.toInteger()).format()
-	}	
-	if(settings.param100 != null){
-		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 100, size: 1, scaledConfigurationValue: settings.param100.toInteger()).format()
-	}	
-	if(settings.param101 != null){
-		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 101, size: 1, scaledConfigurationValue: settings.param101.toInteger()).format()
-	}	
+	}
 	if(settings.param110 != null){
 		configSequence << zwave.configurationV1.configurationSet(parameterNumber: 110, size: 2, scaledConfigurationValue: settings.param110.toInteger()).format()
 	}	
@@ -764,7 +583,7 @@ def setConfiguration() {
  * @return Parsed result of the received bytes.
 */
 def parse(String description) {
-	log.debug "Qubino Flush Dimmer: Parsing '${description}'"
+	log.debug "Qubino DIN Dimmer: Parsing '${description}'"
 	def result = null
     def cmd = zwave.parse(description)
     if (cmd) {
@@ -782,7 +601,7 @@ def parse(String description) {
  * @return Event that updates the temperature values with received values.
 */
 def zwaveEvent(physicalgraph.zwave.commands.sensormultilevelv5.SensorMultilevelReport cmd){
-	log.debug "Qubino Flush Dimmer: SensorMultilevelReport handler fired"
+	log.debug "Qubino DIN Dimmer: SensorMultilevelReport handler fired"
 	def resultEvents = []
 	resultEvents << createEvent(name:"temperature", value: convertDegrees(location.temperatureScale,cmd), unit:"°"+location.temperatureScale, descriptionText: "Temperature: "+convertDegrees(location.temperatureScale,cmd)+"°"+location.temperatureScale)
 	return resultEvents
@@ -794,7 +613,7 @@ def zwaveEvent(physicalgraph.zwave.commands.sensormultilevelv5.SensorMultilevelR
  * @return List of events to update the ON / OFF and analogue control elements with received values.
 */
 def zwaveEvent(physicalgraph.zwave.commands.switchmultilevelv3.SwitchMultilevelReport cmd){
-	log.debug "Qubino Flush Dimmer: firing switch multilevel event"
+	log.debug "Qubino DIN Dimmer: firing switch multilevel event"
 	def result = []
 	result << createEvent(name:"switch", value: cmd.value ? "on" : "off")
 	result << createEvent(name:"level", value: cmd.value, unit:"%", descriptionText:"${device.displayName} dimmed to ${cmd.value==255 ? 100 : cmd.value}%")
@@ -807,7 +626,7 @@ def zwaveEvent(physicalgraph.zwave.commands.switchmultilevelv3.SwitchMultilevelR
  * @return Power consumption event for W data or kwhConsumption event for kWh data.
 */
 def zwaveEvent(physicalgraph.zwave.commands.meterv3.MeterReport cmd) {
-	log.debug "Qubino Flush Dimmer: firing meter report event"
+	log.debug "Qubino DIN Dimmer: firing meter report event"
 	def result = []
 	switch(cmd.scale){
 		case 0:
@@ -823,24 +642,108 @@ def zwaveEvent(physicalgraph.zwave.commands.meterv3.MeterReport cmd) {
 /**
  * Event handler for received Switch Binary Report frames. Used for ON / OFF events.
  *
- * @param void
+ * @param cmd Switch Binary Report received from device
  * @return Switch Event with on or off value.
 */
 def zwaveEvent(physicalgraph.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
-	log.debug "Qubino Flush Dimmer: firing switch binary report event"
+	log.debug "Qubino DIN Dimmer: firing switch binary report event"
     createEvent(name:"switch", value: cmd.value ? "on" : "off")
 }
 /**
  * Event handler for received Configuration Report frames. Used for debugging purposes. 
  *
- * @param void
+ * @param cmd Configuration Report received from device.
  * @return void.
 */
 def zwaveEvent(physicalgraph.zwave.commands.configurationv2.ConfigurationReport cmd){
-	log.debug "Qubino Flush Dimmer: firing configuration report event"
+	log.debug "Qubino DIN Dimmer: firing configuration report event"
 	log.debug cmd.configurationValue
 }
+/**
+ * Event handler for received Basic Report frames.
+ *
+ * @param cmd Basic Report received from device.
+ * @return void
+*/
 def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicReport cmd){
-	log.debug "Qubino Flush Dimmer: firing basic report event"
+	log.debug "Qubino DIN Dimmer: firing basic report event"
 	log.debug cmd
+}
+/**
+ * Event handler for received MultiChannelEndPointReport commands. Used to distinguish when the device is in singlechannel or multichannel configuration. 
+ *
+ * @param cmd communication frame.
+ * @return commands to set up a MC Lifeline association.
+*/
+def zwaveEvent(physicalgraph.zwave.commands.multichannelv3.MultiChannelEndPointReport cmd){
+	log.debug "Qubino DIN Dimmer: firing MultiChannelEndPointReport"
+	if(cmd.endPoints > 0){
+		state.isMcDevice = true;
+		createChildDevices();
+	}
+	def cmds = []
+	cmds << response(zwave.associationV1.associationRemove(groupingIdentifier:1).format())
+	cmds << response(zwave.multiChannelAssociationV2.multiChannelAssociationSet(groupingIdentifier: 1, nodeId: [0,zwaveHubNodeId,1]).format())
+	return cmds
+}
+/**
+ * Event handler for received Multi Channel Encapsulated commands.
+ *
+ * @param cmd encapsulated communication frame
+ * @return parsed event.
+*/
+def zwaveEvent(physicalgraph.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd){
+	log.debug "Qubino DIN Dimmer: firing MC Encapsulation event"
+	def encapsulatedCommand = cmd.encapsulatedCommand()
+	if (encapsulatedCommand) {
+			return zwaveEvent(encapsulatedCommand, cmd)
+	}
+}
+/**
+ * Event handler for received MC Encapsulated Sensor Multilevel Report frames.
+ *
+ * @param cmd communication frame, command mc encapsulated communication frame; needed to distinguish sources
+ * @return List of events to update the temperature control elements with received values.
+*/
+def zwaveEvent(physicalgraph.zwave.commands.sensormultilevelv5.SensorMultilevelReport cmd, physicalgraph.zwave.commands.multichannelv3.MultiChannelCmdEncap command){
+	log.debug "Qubino DIN Dimmer: firing MC sensor multilevel event"
+	def result = []
+	result << createEvent(name:"temperature", value: convertDegrees(location.temperatureScale,cmd), unit:"°"+location.temperatureScale, descriptionText: "Temperature: "+convertDegrees(location.temperatureScale,cmd)+"°"+location.temperatureScale, isStateChange: true)
+	return result
+}
+/**
+ * Event handler for received MC Encapsulated Switch Multilevel Report frames.
+ *
+ * @param cmd communication frame, command mc encapsulated communication frame; needed to distinguish sources
+ * @return List of events to update the ON / OFF and analogue control elements with received values.
+*/
+def zwaveEvent(physicalgraph.zwave.commands.switchmultilevelv3.SwitchMultilevelReport cmd, physicalgraph.zwave.commands.multichannelv3.MultiChannelCmdEncap command){
+	log.debug "Qubino DIN Dimmer: firing MC switch multilevel event"
+	log.debug cmd
+	log.debug command
+	def result = []
+	result << createEvent(name:"switch", value: cmd.value ? "on" : "off")
+	result << createEvent(name:"level", value: cmd.value, unit:"%", descriptionText:"${device.displayName} dimmed to ${cmd.value==255 ? 100 : cmd.value}%")
+	return result
+}
+/**
+ * Event handler for received MC Encapsulated Meter Report frames.
+ *
+ * @param cmd communication frame, command mc encapsulated communication frame; needed to distinguish sources
+ * @return List of events to update power control elements with received values.
+*/
+def zwaveEvent(physicalgraph.zwave.commands.meterv3.MeterReport cmd, physicalgraph.zwave.commands.multichannelv3.MultiChannelCmdEncap command){
+	log.debug "Qubino DIN Dimmer: firing MC Meter Report event"
+	log.debug command
+	log.debug cmd
+	def result = []
+	switch(cmd.scale){
+		case 0:
+			result << createEvent(name:"kwhConsumption", value: cmd.scaledMeterValue, unit:"kWh", descriptionText:"${device.displayName} consumed ${cmd.scaledMeterValue} kWh")
+			break;
+		case 2:
+			result << createEvent(name:"power", value: cmd.scaledMeterValue, unit:"W", descriptionText:"${device.displayName} consumes ${cmd.scaledMeterValue} W")
+			break;
+	}
+	return result
 }
